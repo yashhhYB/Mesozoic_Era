@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { X, MapPin, Calendar, Ruler, Eye } from "lucide-react"
+import { X, MapPin, Calendar, Ruler, Eye, Navigation } from "lucide-react"
 import { dinosaurs } from "@/lib/dinosaur-data"
 
 declare global {
@@ -191,6 +191,7 @@ export default function HomePage() {
   const [selectedDinosaur, setSelectedDinosaur] = useState<any>(null)
   const [showFossilCard, setShowFossilCard] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [highlightedRegion, setHighlightedRegion] = useState<string | null>(null)
   const entitiesRef = useRef<any[]>([])
   const [cesiumError, setCesiumError] = useState<string | null>(null)
 
@@ -246,7 +247,7 @@ export default function HomePage() {
           console.log("Cesium already loaded")
           initializeCesium()
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in loadCesium:", error)
         setCesiumError("Failed to load Cesium")
         setIsLoading(false)
@@ -327,70 +328,136 @@ export default function HomePage() {
           scene.globe.enableLighting = true
         }
 
+        // Add region highlighting functionality
+        const addRegionHighlight = (region: string) => {
+          // Remove existing highlights
+          viewer.entities.removeAll()
+          
+          // Re-add dinosaur entities
+          addDinosaurEntities()
+          
+          // Add region highlight based on the region
+          let highlightCoords: number[][] = []
+          
+          switch (region) {
+            case 'north-america':
+              highlightCoords = [
+                [-140, 60], [-60, 60], [-60, 25], [-140, 25], [-140, 60]
+              ]
+              break
+            case 'asia':
+              highlightCoords = [
+                [60, 70], [180, 70], [180, 25], [60, 25], [60, 70]
+              ]
+              break
+            case 'africa':
+              highlightCoords = [
+                [-20, 40], [55, 40], [55, -35], [-20, -35], [-20, 40]
+              ]
+              break
+            case 'europe':
+              highlightCoords = [
+                [-15, 75], [45, 75], [45, 35], [-15, 35], [-15, 75]
+              ]
+              break
+            case 'south-america':
+              highlightCoords = [
+                [-85, 15], [-30, 15], [-30, -60], [-85, -60], [-85, 15]
+              ]
+              break
+          }
+          
+          if (highlightCoords.length > 0) {
+            viewer.entities.add({
+              polygon: {
+                hierarchy: window.Cesium.Cartesian3.fromDegreesArray(highlightCoords.flat()),
+                material: window.Cesium.Color.YELLOW.withAlpha(0.2),
+                outline: true,
+                outlineColor: window.Cesium.Color.YELLOW,
+                height: 0,
+                extrudedHeight: 100000,
+              }
+            })
+          }
+        }
+
         console.log("Adding dinosaur entities...")
 
-        // Add dinosaur entities with enhanced functionality and error handling
-        dinosaurLocations.forEach((location, index) => {
-          const dinosaur = dinosaurs.find((d) => d.id === location.id)
-          if (dinosaur) {
-            try {
-              // Create a simple colored circle as fallback if image fails
-              const canvas = document.createElement("canvas")
-              canvas.width = 32
-              canvas.height = 32
-              const ctx = canvas.getContext("2d")
-              if (ctx) {
-                ctx.fillStyle = "#4285f4"
-                ctx.beginPath()
-                ctx.arc(16, 16, 12, 0, 2 * Math.PI)
-                ctx.fill()
-                ctx.fillStyle = "white"
-                ctx.font = "12px Arial"
-                ctx.textAlign = "center"
-                ctx.fillText("🦕", 16, 20)
+        const addDinosaurEntities = () => {
+          // Add dinosaur entities with enhanced functionality and error handling
+          dinosaurLocations.forEach((location, index) => {
+            const dinosaur = dinosaurs.find((d) => d.id === location.id)
+            if (dinosaur) {
+              try {
+                // Create enhanced dinosaur icon
+                const canvas = document.createElement("canvas")
+                canvas.width = 48
+                canvas.height = 48
+                const ctx = canvas.getContext("2d")
+                if (ctx) {
+                  // Create gradient background
+                  const gradient = ctx.createRadialGradient(24, 24, 0, 24, 24, 24)
+                  gradient.addColorStop(0, "#4285f4")
+                  gradient.addColorStop(1, "#1557B0")
+                  
+                  ctx.fillStyle = gradient
+                  ctx.beginPath()
+                  ctx.arc(24, 24, 20, 0, 2 * Math.PI)
+                  ctx.fill()
+                  
+                  // Add border
+                  ctx.strokeStyle = "#ffffff"
+                  ctx.lineWidth = 3
+                  ctx.stroke()
+                  
+                  // Add dinosaur emoji
+                  ctx.fillStyle = "white"
+                  ctx.font = "20px Arial"
+                  ctx.textAlign = "center"
+                  ctx.fillText("🦕", 24, 30)
+                }
+
+                const entity = viewer.entities.add({
+                  position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
+                  billboard: {
+                    image: canvas.toDataURL(),
+                    scale: 0.8,
+                    verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
+                    heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                    scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.0, 1.0e7, 0.5),
+                    pixelOffset: new window.Cesium.Cartesian2(0, -5),
+                  },
+                  label: {
+                    text: dinosaur.name,
+                    font: "16px Arial",
+                    pixelOffset: new window.Cesium.Cartesian2(0, -60),
+                    fillColor: window.Cesium.Color.WHITE,
+                    outlineColor: window.Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    show: false,
+                    backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.8),
+                    backgroundPadding: new window.Cesium.Cartesian2(10, 6),
+                    showBackground: true,
+                  },
+                  properties: {
+                    dinosaur: dinosaur,
+                    location: location,
+                    region: location.region,
+                    bouncePhase: index * 0.3,
+                  },
+                })
+
+                entitiesRef.current.push(entity)
+              } catch (entityError) {
+                console.warn("Failed to create entity for:", dinosaur.name, entityError)
               }
-
-              const entity = viewer.entities.add({
-                position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
-                billboard: {
-                  image: location.icon,
-                  scale: 0.25, // Smaller icons
-                  verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
-                  heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
-                  disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                  color: window.Cesium.Color.WHITE,
-                  outlineColor: window.Cesium.Color.fromCssColorString("#4285f4"),
-                  outlineWidth: 1,
-                  scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 0.3, 1.0e7, 0.15),
-                  pixelOffset: new window.Cesium.Cartesian2(0, -2),
-                },
-                label: {
-                  text: dinosaur.name,
-                  font: "14px Arial",
-                  pixelOffset: new window.Cesium.Cartesian2(0, -45),
-                  fillColor: window.Cesium.Color.WHITE,
-                  outlineColor: window.Cesium.Color.BLACK,
-                  outlineWidth: 2,
-                  style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
-                  show: false,
-                  backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.7),
-                  backgroundPadding: new window.Cesium.Cartesian2(8, 4),
-                  showBackground: true,
-                },
-                properties: {
-                  dinosaur: dinosaur,
-                  location: location,
-                  region: location.region,
-                  bouncePhase: index * 0.3,
-                },
-              })
-
-              entitiesRef.current.push(entity)
-            } catch (entityError) {
-              console.warn("Failed to create entity for:", dinosaur.name, entityError)
             }
-          }
-        })
+          })
+        }
+
+        addDinosaurEntities()
 
         entitiesRef.current.forEach((entity) => {
           entity.show = true
@@ -463,6 +530,10 @@ export default function HomePage() {
                   2000000, // 2000km altitude for regional view
                 )
 
+                // Highlight the region
+                setHighlightedRegion(location.region)
+                addRegionHighlight(location.region)
+
                 camera.flyTo({
                   destination: zoomPosition,
                   duration: 1.5,
@@ -481,7 +552,7 @@ export default function HomePage() {
         console.log("Cesium initialization complete")
         setIsLoading(false)
         setCesiumError(null)
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error initializing Cesium:", error)
         setCesiumError(`Initialization failed: ${error.message}`)
         setIsLoading(false)
@@ -508,9 +579,82 @@ export default function HomePage() {
   const closeDinosaurInfo = () => {
     setSelectedDinosaur(null)
     setShowFossilCard(null)
+    setHighlightedRegion(null)
 
     // Reset camera to global view
     if (viewerRef.current && window.Cesium) {
+      // Clear all entities and re-add dinosaurs without highlights
+      viewerRef.current.entities.removeAll()
+      entitiesRef.current = []
+      
+      // Re-add dinosaur entities
+      dinosaurLocations.forEach((location, index) => {
+        const dinosaur = dinosaurs.find((d) => d.id === location.id)
+        if (dinosaur) {
+          try {
+            const canvas = document.createElement("canvas")
+            canvas.width = 48
+            canvas.height = 48
+            const ctx = canvas.getContext("2d")
+            if (ctx) {
+              const gradient = ctx.createRadialGradient(24, 24, 0, 24, 24, 24)
+              gradient.addColorStop(0, "#4285f4")
+              gradient.addColorStop(1, "#1557B0")
+              
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(24, 24, 20, 0, 2 * Math.PI)
+              ctx.fill()
+              
+              ctx.strokeStyle = "#ffffff"
+              ctx.lineWidth = 3
+              ctx.stroke()
+              
+              ctx.fillStyle = "white"
+              ctx.font = "20px Arial"
+              ctx.textAlign = "center"
+              ctx.fillText("🦕", 24, 30)
+            }
+
+            const entity = viewerRef.current.entities.add({
+              position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
+              billboard: {
+                image: canvas.toDataURL(),
+                scale: 0.8,
+                verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
+                heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.0, 1.0e7, 0.5),
+                pixelOffset: new window.Cesium.Cartesian2(0, -5),
+              },
+              label: {
+                text: dinosaur.name,
+                font: "16px Arial",
+                pixelOffset: new window.Cesium.Cartesian2(0, -60),
+                fillColor: window.Cesium.Color.WHITE,
+                outlineColor: window.Cesium.Color.BLACK,
+                outlineWidth: 2,
+                style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
+                show: false,
+                backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.8),
+                backgroundPadding: new window.Cesium.Cartesian2(10, 6),
+                showBackground: true,
+              },
+              properties: {
+                dinosaur: dinosaur,
+                location: location,
+                region: location.region,
+                bouncePhase: index * 0.3,
+              },
+            })
+
+            entitiesRef.current.push(entity)
+          } catch (error) {
+            console.warn("Failed to recreate entity:", error)
+          }
+        }
+      })
+      
       viewerRef.current.camera.flyTo({
         destination: window.Cesium.Cartesian3.fromDegrees(-95.0, 40.0, 15000000),
         duration: 1.5,
