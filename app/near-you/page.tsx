@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MapPin, Grid, Map, Search, ArrowLeft, Navigation, Clock, Users, Camera } from "lucide-react"
+import { MapPin, Grid, Map, Search, ArrowLeft, Navigation, Clock, Users, Camera, Car, Plane, Train, Phone, Globe, MapIcon } from "lucide-react"
 import { dinosaurs, fossilLocations, findFossilsNearLocation, getAlternativeFossilLocations } from "@/lib/dinosaur-data"
 import Link from "next/link"
 import Image from "next/image"
@@ -117,6 +117,43 @@ function FossilDiscoveryCard({ location, distance }: { location: any; distance: 
               <h4 className="font-medium text-gray-900 mb-1">Museum</h4>
               <p className="text-gray-600 text-xs">{location.visitingInfo.museum}</p>
             </div>
+            
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                <Navigation className="h-4 w-4" />
+                How to Visit
+              </h4>
+              <div className="space-y-3 text-orange-800">
+                <div className="flex items-start gap-2">
+                  <Car className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">By Car:</p>
+                    <p className="text-sm">{location.visitingInfo?.driving || "Check local directions to nearest museum or visitor center"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Plane className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">By Air:</p>
+                    <p className="text-sm">{location.visitingInfo?.airport || "Fly to nearest major airport and rent a car"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Best Time:</p>
+                    <p className="text-sm">{location.visitingInfo?.bestTime || "Spring through fall for outdoor sites"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Phone className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Contact:</p>
+                    <p className="text-sm">{location.visitingInfo?.contact || "Contact local tourism office for details"}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -156,17 +193,32 @@ export default function NearYouPage() {
         document.head.appendChild(link)
         document.head.appendChild(script)
 
-        script.onload = () => {
-          setTimeout(() => {
-            if (window.Cesium) {
-              initializeCesiumMap()
-            }
-          }, 100)
-        }
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error("Cesium loading timeout"))
+          }, 10000) // 10 second timeout
+          
+          script.onload = () => {
+            clearTimeout(timeout)
+            setTimeout(() => {
+              if (window.Cesium) {
+                initializeCesiumMap()
+                resolve(true)
+              } else {
+                reject(new Error("Cesium not available after load"))
+              }
+            }, 500)
+          }
+          
+          script.onerror = () => {
+            clearTimeout(timeout)
+            reject(new Error("Failed to load Cesium script"))
+          }
+        })
       } else if (viewMode === "map") {
         initializeCesiumMap()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading Cesium:", error)
     }
   }
@@ -191,6 +243,8 @@ export default function NearYouPage() {
         infoBox: false,
         selectionIndicator: false,
         creditContainer: document.createElement("div"),
+        requestRenderMode: true,
+        maximumRenderTimeChange: Infinity,
       })
 
       viewerRef.current = viewer
@@ -200,30 +254,58 @@ export default function NearYouPage() {
       scene.screenSpaceCameraController.inertiaTranslate = 0
       scene.screenSpaceCameraController.inertiaZoom = 0
 
-      // Add simple fossil location markers
+      // Add fossil location markers with enhanced icons
       fossilLocations.forEach((location) => {
         try {
+          // Create enhanced fossil site icon
+          const canvas = document.createElement("canvas")
+          canvas.width = 40
+          canvas.height = 40
+          const ctx = canvas.getContext("2d")
+          if (ctx) {
+            // Create gradient background
+            const gradient = ctx.createRadialGradient(20, 20, 0, 20, 20, 20)
+            gradient.addColorStop(0, "#ea4335")
+            gradient.addColorStop(1, "#c5221f")
+            
+            ctx.fillStyle = gradient
+            ctx.beginPath()
+            ctx.arc(20, 20, 16, 0, 2 * Math.PI)
+            ctx.fill()
+            
+            // Add white border
+            ctx.strokeStyle = "#ffffff"
+            ctx.lineWidth = 2
+            ctx.stroke()
+            
+            // Add fossil icon
+            ctx.fillStyle = "white"
+            ctx.font = "16px Arial"
+            ctx.textAlign = "center"
+            ctx.fillText("🦴", 20, 25)
+          }
+
           // Main fossil site marker
           viewer.entities.add({
             position: window.Cesium.Cartesian3.fromDegrees(location.location.lng, location.location.lat),
-            point: {
-              pixelSize: 12,
-              color: window.Cesium.Color.fromCssColorString("#ea4335"),
-              outlineColor: window.Cesium.Color.WHITE,
-              outlineWidth: 2,
+            billboard: {
+              image: canvas.toDataURL(),
+              scale: 1.0,
+              verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
               heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             label: {
               text: location.name,
-              font: "12px Arial",
-              pixelOffset: new window.Cesium.Cartesian2(0, -30),
+              font: "14px Arial",
+              pixelOffset: new window.Cesium.Cartesian2(0, -50),
               fillColor: window.Cesium.Color.WHITE,
               outlineColor: window.Cesium.Color.BLACK,
               outlineWidth: 2,
               style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
               show: false,
-              backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.7),
-              backgroundPadding: new window.Cesium.Cartesian2(6, 3),
+              backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.8),
+              backgroundPadding: new window.Cesium.Cartesian2(8, 4),
               showBackground: true,
             },
             properties: {
@@ -239,19 +321,44 @@ export default function NearYouPage() {
               const offsetLng = location.location.lng + (Math.random() - 0.5) * 0.3
               const offsetLat = location.location.lat + (Math.random() - 0.5) * 0.3
 
+              // Create small dinosaur icon
+              const dinoCanvas = document.createElement("canvas")
+              dinoCanvas.width = 24
+              dinoCanvas.height = 24
+              const dinoCtx = dinoCanvas.getContext("2d")
+              if (dinoCtx) {
+                const dinoGradient = dinoCtx.createRadialGradient(12, 12, 0, 12, 12, 12)
+                dinoGradient.addColorStop(0, "#4285f4")
+                dinoGradient.addColorStop(1, "#1557B0")
+                
+                dinoCtx.fillStyle = dinoGradient
+                dinoCtx.beginPath()
+                dinoCtx.arc(12, 12, 10, 0, 2 * Math.PI)
+                dinoCtx.fill()
+                
+                dinoCtx.strokeStyle = "#ffffff"
+                dinoCtx.lineWidth = 1
+                dinoCtx.stroke()
+                
+                dinoCtx.fillStyle = "white"
+                dinoCtx.font = "10px Arial"
+                dinoCtx.textAlign = "center"
+                dinoCtx.fillText("🦕", 12, 16)
+              }
+
               viewer.entities.add({
                 position: window.Cesium.Cartesian3.fromDegrees(offsetLng, offsetLat),
-                point: {
-                  pixelSize: 8,
-                  color: window.Cesium.Color.fromCssColorString("#4285f4"),
-                  outlineColor: window.Cesium.Color.WHITE,
-                  outlineWidth: 1,
+                billboard: {
+                  image: dinoCanvas.toDataURL(),
+                  scale: 0.8,
+                  verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
                   heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
+                  disableDepthTestDistance: Number.POSITIVE_INFINITY,
                 },
                 label: {
                   text: dinosaur.name,
                   font: "10px Arial",
-                  pixelOffset: new window.Cesium.Cartesian2(0, -20),
+                  pixelOffset: new window.Cesium.Cartesian2(0, -30),
                   fillColor: window.Cesium.Color.WHITE,
                   outlineColor: window.Cesium.Color.BLACK,
                   outlineWidth: 1,
@@ -276,7 +383,7 @@ export default function NearYouPage() {
         destination: window.Cesium.Cartesian3.fromDegrees(-95.0, 40.0, 20000000),
       })
 
-      // Simple hover effects
+      // Enhanced hover effects
       viewer.screenSpaceEventHandler.setInputAction((event: any) => {
         try {
           const pickedObject = viewer.scene.pick(event.endPosition)
@@ -285,16 +392,23 @@ export default function NearYouPage() {
             if (entity.label) {
               entity.label.show = false
             }
+            if (entity.billboard) {
+              entity.billboard.scale = entity.properties?.type?.getValue() === "fossil-site" ? 1.0 : 0.8
+            }
           })
 
           if (pickedObject && pickedObject.id && pickedObject.id.label) {
             pickedObject.id.label.show = true
+            if (pickedObject.id.billboard) {
+              const currentScale = pickedObject.id.properties?.type?.getValue() === "fossil-site" ? 1.0 : 0.8
+              pickedObject.id.billboard.scale = currentScale * 1.2
+            }
           }
         } catch (error) {
           console.warn("Hover effect error:", error)
         }
       }, window.Cesium.ScreenSpaceEventType.MOUSE_MOVE)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error initializing Cesium map:", error)
     }
   }
@@ -304,12 +418,18 @@ export default function NearYouPage() {
 
     setIsLoading(true)
     try {
-      const coords = await geocodeLocation(userLocation)
+      const coords = await Promise.race([
+        geocodeLocation(userLocation),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Geocoding timeout")), 5000)
+        )
+      ]) as { lat: number; lng: number } | null
+      
       if (coords) {
         setUserCoords(coords)
         findNearbyFossils(coords.lat, coords.lng)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error geocoding location:", error)
       setAlternativeFossils(getAlternativeFossilLocations(0, 0))
     }
@@ -352,15 +472,24 @@ export default function NearYouPage() {
   const geocodeLocation = async (location: string): Promise<{ lat: number; lng: number } | null> => {
     const cityCoords: { [key: string]: { lat: number; lng: number } } = {
       "new york": { lat: 40.7128, lng: -74.006 },
+      "nyc": { lat: 40.7128, lng: -74.006 },
       london: { lat: 51.5074, lng: -0.1278 },
       tokyo: { lat: 35.6762, lng: 139.6503 },
       paris: { lat: 48.8566, lng: 2.3522 },
       sydney: { lat: -33.8688, lng: 151.2093 },
       "los angeles": { lat: 34.0522, lng: -118.2437 },
+      "la": { lat: 34.0522, lng: -118.2437 },
       chicago: { lat: 41.8781, lng: -87.6298 },
       berlin: { lat: 52.52, lng: 13.405 },
       moscow: { lat: 55.7558, lng: 37.6176 },
       beijing: { lat: 39.9042, lng: 116.4074 },
+      "san francisco": { lat: 37.7749, lng: -122.4194 },
+      "miami": { lat: 25.7617, lng: -80.1918 },
+      "denver": { lat: 39.7392, lng: -104.9903 },
+      "seattle": { lat: 47.6062, lng: -122.3321 },
+      "toronto": { lat: 43.6532, lng: -79.3832 },
+      "vancouver": { lat: 49.2827, lng: -123.1207 },
+      "montreal": { lat: 45.5017, lng: -73.5673 },
     }
 
     const normalized = location.toLowerCase().trim()
