@@ -68,5 +68,11 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5",
     "@netlify/plugin-nextjs": "^5.0.0"
+  },
+  "overrides": {
+    "vaul": {
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0"
+    }
   }
 }
