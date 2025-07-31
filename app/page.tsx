@@ -336,49 +336,78 @@ export default function HomePage() {
           // Re-add dinosaur entities
           addDinosaurEntities()
           
-          // Add region highlight based on the region
-          let highlightCoords: number[][] = []
+          // Add professional region highlight with country borders
+          let countryBorders: number[][][] = []
           
           switch (region) {
             case 'north-america':
-              highlightCoords = [
-                [-140, 60], [-60, 60], [-60, 25], [-140, 25], [-140, 60]
+              // USA outline (simplified)
+              countryBorders = [
+                [
+                  [-125, 49], [-95, 49], [-95, 45], [-83, 45], [-83, 42], [-75, 42],
+                  [-75, 40], [-70, 40], [-70, 35], [-75, 35], [-80, 30], [-85, 25],
+                  [-95, 25], [-100, 28], [-110, 32], [-115, 35], [-120, 40], [-125, 45], [-125, 49]
+                ]
               ]
               break
             case 'asia':
-              highlightCoords = [
-                [60, 70], [180, 70], [180, 25], [60, 25], [60, 70]
+              // Mongolia/China outline (simplified)
+              countryBorders = [
+                [
+                  [87, 50], [120, 50], [135, 45], [135, 40], [125, 35], [110, 35],
+                  [95, 40], [87, 45], [87, 50]
+                ]
               ]
               break
             case 'africa':
-              highlightCoords = [
-                [-20, 40], [55, 40], [55, -35], [-20, -35], [-20, 40]
+              // Egypt outline (simplified)
+              countryBorders = [
+                [
+                  [25, 32], [35, 32], [35, 22], [25, 22], [25, 32]
+                ]
               ]
               break
             case 'europe':
-              highlightCoords = [
-                [-15, 75], [45, 75], [45, 35], [-15, 35], [-15, 75]
+              // Belgium/Netherlands outline (simplified)
+              countryBorders = [
+                [
+                  [2, 52], [8, 52], [8, 50], [2, 50], [2, 52]
+                ]
               ]
               break
             case 'south-america':
-              highlightCoords = [
-                [-85, 15], [-30, 15], [-30, -60], [-85, -60], [-85, 15]
+              // Argentina outline (simplified)
+              countryBorders = [
+                [
+                  [-75, -20], [-55, -20], [-55, -55], [-75, -55], [-75, -20]
+                ]
               ]
               break
           }
           
-          if (highlightCoords.length > 0) {
+          // Add country border highlights
+          countryBorders.forEach((border, index) => {
             viewer.entities.add({
-              polygon: {
-                hierarchy: window.Cesium.Cartesian3.fromDegreesArray(highlightCoords.flat()),
-                material: window.Cesium.Color.YELLOW.withAlpha(0.2),
-                outline: true,
-                outlineColor: window.Cesium.Color.YELLOW,
-                height: 0,
-                extrudedHeight: 100000,
+              polyline: {
+                positions: window.Cesium.Cartesian3.fromDegreesArray(border.flat()),
+                width: 6,
+                material: window.Cesium.Color.fromCssColorString("#ff6b35"),
+                clampToGround: true,
+                zIndex: 1000,
               }
             })
-          }
+            
+            // Add subtle fill
+            viewer.entities.add({
+              polygon: {
+                hierarchy: window.Cesium.Cartesian3.fromDegreesArray(border.flat()),
+                material: window.Cesium.Color.fromCssColorString("#ff6b35").withAlpha(0.15),
+                outline: false,
+                height: 0,
+                extrudedHeight: 50000,
+              }
+            })
+          })
         }
 
         console.log("Adding dinosaur entities...")
@@ -389,56 +418,68 @@ export default function HomePage() {
             const dinosaur = dinosaurs.find((d) => d.id === location.id)
             if (dinosaur) {
               try {
-                // Create enhanced dinosaur icon
+                // Create professional dinosaur icon with better visibility
                 const canvas = document.createElement("canvas")
-                canvas.width = 48
-                canvas.height = 48
+                canvas.width = 64
+                canvas.height = 64
                 const ctx = canvas.getContext("2d")
                 if (ctx) {
-                  // Create gradient background
-                  const gradient = ctx.createRadialGradient(24, 24, 0, 24, 24, 24)
-                  gradient.addColorStop(0, "#4285f4")
-                  gradient.addColorStop(1, "#1557B0")
+                  // Create professional gradient background
+                  const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 28)
+                  gradient.addColorStop(0, "#ffffff")
+                  gradient.addColorStop(0.3, "#4285f4")
+                  gradient.addColorStop(1, "#1a73e8")
                   
                   ctx.fillStyle = gradient
                   ctx.beginPath()
-                  ctx.arc(24, 24, 20, 0, 2 * Math.PI)
+                  ctx.arc(32, 32, 28, 0, 2 * Math.PI)
                   ctx.fill()
                   
-                  // Add border
-                  ctx.strokeStyle = "#ffffff"
-                  ctx.lineWidth = 3
+                  // Add professional border
+                  ctx.strokeStyle = "#1a73e8"
+                  ctx.lineWidth = 4
                   ctx.stroke()
                   
-                  // Add dinosaur emoji
+                  // Add inner white border
+                  ctx.strokeStyle = "#ffffff"
+                  ctx.lineWidth = 2
+                  ctx.stroke()
+                  
+                  // Add dinosaur icon
                   ctx.fillStyle = "white"
-                  ctx.font = "20px Arial"
+                  ctx.font = "bold 24px Arial"
                   ctx.textAlign = "center"
-                  ctx.fillText("🦕", 24, 30)
+                  ctx.fillText("🦕", 32, 40)
+                  
+                  // Add shadow effect
+                  ctx.shadowColor = "rgba(0,0,0,0.3)"
+                  ctx.shadowBlur = 4
+                  ctx.shadowOffsetX = 2
+                  ctx.shadowOffsetY = 2
                 }
 
                 const entity = viewer.entities.add({
                   position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
                   billboard: {
                     image: canvas.toDataURL(),
-                    scale: 0.8,
+                    scale: 1.0,
                     verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
                     heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
                     disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                    scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.0, 1.0e7, 0.5),
+                    scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.2, 1.0e7, 0.6),
                     pixelOffset: new window.Cesium.Cartesian2(0, -5),
                   },
                   label: {
                     text: dinosaur.name,
-                    font: "16px Arial",
-                    pixelOffset: new window.Cesium.Cartesian2(0, -60),
+                    font: "bold 18px Arial",
+                    pixelOffset: new window.Cesium.Cartesian2(0, -80),
                     fillColor: window.Cesium.Color.WHITE,
                     outlineColor: window.Cesium.Color.BLACK,
-                    outlineWidth: 2,
+                    outlineWidth: 3,
                     style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
                     show: false,
-                    backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.8),
-                    backgroundPadding: new window.Cesium.Cartesian2(10, 6),
+                    backgroundColor: window.Cesium.Color.fromCssColorString("#1a73e8").withAlpha(0.9),
+                    backgroundPadding: new window.Cesium.Cartesian2(12, 8),
                     showBackground: true,
                   },
                   properties: {
@@ -490,20 +531,16 @@ export default function HomePage() {
 
               entitiesRef.current.forEach((entity) => {
                 if (entity.billboard) {
-                  entity.billboard.scale = 0.25
+                  entity.billboard.scale = 1.0
                   entity.label.show = false
                   entity.billboard.color = window.Cesium.Color.WHITE
-                  entity.billboard.outlineColor = window.Cesium.Color.fromCssColorString("#4285f4")
-                  entity.billboard.outlineWidth = 1
                 }
               })
 
               if (pickedObject && pickedObject.id && pickedObject.id.billboard) {
-                pickedObject.id.billboard.scale = 0.4
+                pickedObject.id.billboard.scale = 1.3
                 pickedObject.id.label.show = true
-                pickedObject.id.billboard.color = window.Cesium.Color.fromCssColorString("#34a853")
-                pickedObject.id.billboard.outlineColor = window.Cesium.Color.fromCssColorString("#fbbc04")
-                pickedObject.id.billboard.outlineWidth = 2
+                pickedObject.id.billboard.color = window.Cesium.Color.WHITE
               }
             } catch (hoverError) {
               console.warn("Hover effect error:", hoverError)
@@ -593,51 +630,56 @@ export default function HomePage() {
         if (dinosaur) {
           try {
             const canvas = document.createElement("canvas")
-            canvas.width = 48
-            canvas.height = 48
+            canvas.width = 64
+            canvas.height = 64
             const ctx = canvas.getContext("2d")
             if (ctx) {
-              const gradient = ctx.createRadialGradient(24, 24, 0, 24, 24, 24)
-              gradient.addColorStop(0, "#4285f4")
-              gradient.addColorStop(1, "#1557B0")
+              const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 28)
+              gradient.addColorStop(0, "#ffffff")
+              gradient.addColorStop(0.3, "#4285f4")
+              gradient.addColorStop(1, "#1a73e8")
               
               ctx.fillStyle = gradient
               ctx.beginPath()
-              ctx.arc(24, 24, 20, 0, 2 * Math.PI)
+              ctx.arc(32, 32, 28, 0, 2 * Math.PI)
               ctx.fill()
               
+              ctx.strokeStyle = "#1a73e8"
+              ctx.lineWidth = 4
+              ctx.stroke()
+              
               ctx.strokeStyle = "#ffffff"
-              ctx.lineWidth = 3
+              ctx.lineWidth = 2
               ctx.stroke()
               
               ctx.fillStyle = "white"
-              ctx.font = "20px Arial"
+              ctx.font = "bold 24px Arial"
               ctx.textAlign = "center"
-              ctx.fillText("🦕", 24, 30)
+              ctx.fillText("🦕", 32, 40)
             }
 
             const entity = viewerRef.current.entities.add({
               position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
               billboard: {
                 image: canvas.toDataURL(),
-                scale: 0.8,
+                scale: 1.0,
                 verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
                 heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
                 disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.0, 1.0e7, 0.5),
+                scaleByDistance: new window.Cesium.NearFarScalar(1.0e3, 1.2, 1.0e7, 0.6),
                 pixelOffset: new window.Cesium.Cartesian2(0, -5),
               },
               label: {
                 text: dinosaur.name,
-                font: "16px Arial",
-                pixelOffset: new window.Cesium.Cartesian2(0, -60),
+                font: "bold 18px Arial",
+                pixelOffset: new window.Cesium.Cartesian2(0, -80),
                 fillColor: window.Cesium.Color.WHITE,
                 outlineColor: window.Cesium.Color.BLACK,
-                outlineWidth: 2,
+                outlineWidth: 3,
                 style: window.Cesium.LabelStyle.FILL_AND_OUTLINE,
                 show: false,
-                backgroundColor: window.Cesium.Color.BLACK.withAlpha(0.8),
-                backgroundPadding: new window.Cesium.Cartesian2(10, 6),
+                backgroundColor: window.Cesium.Color.fromCssColorString("#1a73e8").withAlpha(0.9),
+                backgroundPadding: new window.Cesium.Cartesian2(12, 8),
                 showBackground: true,
               },
               properties: {
@@ -772,8 +814,15 @@ export default function HomePage() {
       {!selectedDinosaur && !isLoading && (
         <div className="absolute top-20 left-0 right-0 z-30 text-center px-4">
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-4xl md:text-5xl mb-4 text-white font-light">Mesozoic Era</h1>
-            <h2 className="text-lg mb-4 text-slate-200 font-light">Explore the World of Dinosaurs</h2>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+              <h1 className="text-4xl md:text-5xl mb-4 text-white font-light">Mesozoic Era</h1>
+              <h2 className="text-lg mb-4 text-slate-200 font-light">Explore the World of Dinosaurs</h2>
+              <div className="flex justify-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+              </div>
+            </div>
             <p className="text-sm max-w-lg mx-auto text-slate-300">
               Click on dinosaur icons to zoom into their regions and discover fossil information
             </p>
@@ -782,11 +831,11 @@ export default function HomePage() {
       )}
 
       {selectedDinosaur && (
-        <div className="absolute top-0 right-0 w-full md:w-80 h-full bg-white z-40 overflow-y-auto shadow-lg">
+        <div className="absolute top-0 right-0 w-full md:w-96 h-full bg-white/95 backdrop-blur-md z-40 overflow-y-auto shadow-2xl border-l border-gray-200">
           <div className="p-6">
             <button
               onClick={closeDinosaurInfo}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/80 transition-all duration-200 backdrop-blur-sm"
             >
               <X className="h-5 w-5 text-gray-600" />
             </button>
@@ -796,52 +845,61 @@ export default function HomePage() {
                 <img
                   src={selectedDinosaur.renderImage || selectedDinosaur.images[0] || "/placeholder.svg"}
                   alt={selectedDinosaur.name}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
+                  className="w-full h-48 object-cover rounded-xl mb-4 shadow-lg"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder.svg?height=160&width=320&text=Image+Not+Found"
                   }}
                 />
               </div>
 
-              <h2 className="text-2xl font-medium text-gray-900 mb-2">{selectedDinosaur.name}</h2>
-              <p className="text-lg text-gray-600 italic mb-4">{selectedDinosaur.scientificName}</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">{selectedDinosaur.name}</h2>
+              <p className="text-lg text-gray-600 italic mb-6">{selectedDinosaur.scientificName}</p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+              <div className="flex flex-wrap gap-3 mb-8">
+                <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md">
                   {selectedDinosaur.period}
                 </span>
-                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md">
                   {getDietIcon(selectedDinosaur.diet)} {selectedDinosaur.diet}
                 </span>
-                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                <span className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md">
                   {selectedDinosaur.length}m long
                 </span>
               </div>
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-6 mb-8">
                 <div>
-                  <h3 className="text-lg font-medium mb-2 text-gray-900">Overview</h3>
-                  <p className="text-gray-700 leading-relaxed text-sm">{selectedDinosaur.overview}</p>
+                  <h3 className="text-xl font-bold mb-3 text-gray-900 flex items-center">
+                    <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></div>
+                    Overview
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">{selectedDinosaur.overview}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium mb-2 text-gray-900">Discovery</h3>
-                  <p className="text-gray-700 text-sm">
+                  <h3 className="text-xl font-bold mb-3 text-gray-900 flex items-center">
+                    <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-blue-500 rounded-full mr-3"></div>
+                    Discovery
+                  </h3>
+                  <p className="text-gray-700">
                     <MapPin className="inline h-4 w-4 mr-1" />
                     {selectedDinosaur.discoveryLocation?.name || selectedDinosaur.fossilsFound}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium mb-2 text-gray-900">Fun Fact</h3>
-                  <p className="text-gray-700 leading-relaxed text-sm">{selectedDinosaur.funFact}</p>
+                  <h3 className="text-xl font-bold mb-3 text-gray-900 flex items-center">
+                    <div className="w-1 h-6 bg-gradient-to-b from-yellow-500 to-orange-500 rounded-full mr-3"></div>
+                    Fun Fact
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">{selectedDinosaur.funFact}</p>
                 </div>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-10">
                 <Link
                   href={`/dinosaur/${selectedDinosaur.id}`}
-                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-3 px-4 rounded font-medium transition-colors"
+                  className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-center py-4 px-6 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   Learn More
                 </Link>

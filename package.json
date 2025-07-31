@@ -70,9 +70,25 @@
     "@netlify/plugin-nextjs": "^5.0.0"
   },
   "overrides": {
+    "@radix-ui/react-accordion": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "@radix-ui/react-hover-card": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "@radix-ui/react-popover": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "@radix-ui/react-menu": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
     "vaul": {
-      "react": "^19.0.0",
-      "react-dom": "^19.0.0"
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   }
 }
