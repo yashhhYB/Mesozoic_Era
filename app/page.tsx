@@ -354,7 +354,7 @@ export default function HomePage() {
                 position: window.Cesium.Cartesian3.fromDegrees(location.position[0], location.position[1]),
                 billboard: {
                   image: location.icon,
-                  scale: 0.25, // Smaller icons
+                  scale: 0.35, // Smaller icons
                   verticalOrigin: window.Cesium.VerticalOrigin.BOTTOM,
                   heightReference: window.Cesium.HeightReference.CLAMP_TO_GROUND,
                   disableDepthTestDistance: Number.POSITIVE_INFINITY,
